@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from pathlib import Path
 import sys
 sys.path.append(str(Path("/home/ubuntu/pt_system")))
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from scripts.db import get_conn
 def fetch_range(days=1):
     end = date.today()

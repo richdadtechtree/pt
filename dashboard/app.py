@@ -3,6 +3,7 @@ import sys
 
 # 프로젝트 경로 설정
 sys.path.append(str(Path("/home/ubuntu/pt_system")))
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from flask import Flask, render_template_string
 from scripts.db import get_conn

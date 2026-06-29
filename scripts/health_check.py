@@ -3,6 +3,7 @@ from pathlib import Path
 
 # 프로젝트 경로 추가
 sys.path.append(str(Path("/home/ubuntu/pt_system")))
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from scripts.db import get_conn
 

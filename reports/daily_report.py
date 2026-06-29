@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 sys.path.append(str(Path("/home/ubuntu/pt_system")))
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from google import genai
 from scripts.config import GEMINI_MODEL
 from scripts.db import get_conn

@@ -1,7 +1,12 @@
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path("/home/ubuntu/pt_system/pt_data.db")
+import sys
+sys.path.append(str(Path("/home/ubuntu/pt_system")))
+sys.path.append(str(Path(__file__).resolve().parent))
+from scripts.config import DATABASE_PATH
+
+DB_PATH = Path(DATABASE_PATH)
 
 conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()

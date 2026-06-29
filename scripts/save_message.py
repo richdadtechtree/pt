@@ -4,6 +4,7 @@ from datetime import date
 from pathlib import Path
 
 sys.path.append(str(Path("/home/ubuntu/pt_system")))
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from scripts.db import get_conn
 
 def find_weight(text):

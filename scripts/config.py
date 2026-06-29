@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-BASE_DIR = Path("/home/ubuntu/pt_system")
+DEFAULT_BASE_DIR = Path("/home/ubuntu/pt_system")
+BASE_DIR = DEFAULT_BASE_DIR if DEFAULT_BASE_DIR.exists() else Path(__file__).resolve().parents[1]
 load_dotenv(BASE_DIR / ".env")
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", str(BASE_DIR / "pt_data.db"))

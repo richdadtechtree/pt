@@ -1,7 +1,9 @@
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path("/home/ubuntu/pt_system/pt_data.db")
+from scripts.config import DATABASE_PATH
+
+DB_PATH = Path(DATABASE_PATH)
 
 def get_conn():
     conn = sqlite3.connect(DB_PATH)

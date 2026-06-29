@@ -3,6 +3,7 @@ from pathlib import Path
 
 # 파이썬이 pt_system 폴더를 최상위 경로로 인식하도록 추가합니다.
 sys.path.append(str(Path("/home/ubuntu/pt_system")))
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import requests
 from scripts.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
