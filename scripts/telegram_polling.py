@@ -68,13 +68,21 @@ def handle_text(text):
         send_message(f"[오류 발생]\n기록 저장 중 에러가 발생했습니다:\n{result.stderr.strip()}")
         return
     stdout_val = result.stdout.strip()
-    if stdout_val:
-        send_message(stdout_val)
     
     # AI 피드백 및 답변 생성
     ai_feedback = generate_response(text)
+    
+    # 두 결과를 하나의 메시지로 결합하여 전송
+    response_message = ""
+    if stdout_val:
+        response_message += stdout_val
     if ai_feedback:
-        send_message(ai_feedback)
+        if response_message:
+            response_message += "\n\n"
+        response_message += ai_feedback
+        
+    if response_message:
+        send_message(response_message)
 
 def main():
     if not TELEGRAM_BOT_TOKEN:
