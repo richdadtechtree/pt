@@ -6,7 +6,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from scripts.send_telegram import send_message
 from scripts.config import BASE_DIR
 result = subprocess.run(
-    ["python3", str(BASE_DIR / "reports/daily_report.py")],
+    [sys.executable, str(BASE_DIR / "reports/daily_report.py")],
     capture_output=True,
     text=True,
     check=True,

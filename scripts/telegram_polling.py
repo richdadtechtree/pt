@@ -11,6 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 # 2. 매뉴얼에서 정의한 모듈 임포트
 from scripts.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, BASE_DIR
 from scripts.send_telegram import send_message
+from scripts.ai_helper import generate_response
 
 API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
@@ -30,7 +31,7 @@ def handle_text(text):
     # /daily 리포트 요청 처리
     if text == "/daily":
         result = subprocess.run(
-            ["python3", str(BASE_DIR / "reports/daily_report.py")],
+            [sys.executable, str(BASE_DIR / "reports/daily_report.py")],
             capture_output=True, text=True
         )
         if result.returncode != 0:
@@ -43,7 +44,7 @@ def handle_text(text):
     # /weekly 리포트 요청 처리
     if text == "/weekly":
         result = subprocess.run(
-            ["python3", str(BASE_DIR / "reports/weekly_report.py")],
+            [sys.executable, str(BASE_DIR / "reports/weekly_report.py")],
             capture_output=True, text=True
         )
         if result.returncode != 0:
@@ -60,7 +61,7 @@ def handle_text(text):
 
     # 일반 기록 저장 스크립트 실행
     result = subprocess.run(
-        ["python3", str(BASE_DIR / "scripts/save_message.py"), text],
+        [sys.executable, str(BASE_DIR / "scripts/save_message.py"), text],
         capture_output=True, text=True
     )
     if result.returncode != 0:
@@ -69,6 +70,11 @@ def handle_text(text):
     stdout_val = result.stdout.strip()
     if stdout_val:
         send_message(stdout_val)
+    
+    # AI 피드백 및 답변 생성
+    ai_feedback = generate_response(text)
+    if ai_feedback:
+        send_message(ai_feedback)
 
 def main():
     if not TELEGRAM_BOT_TOKEN:
