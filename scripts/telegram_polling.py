@@ -33,7 +33,11 @@ def handle_text(text):
             ["python3", str(BASE_DIR / "reports/daily_report.py")],
             capture_output=True, text=True
         )
-        send_message("[일일 PT 리포트]\n\n" + (result.stdout.strip() if result.stdout.strip() else "리포트 생성 내용이 없습니다."))
+        if result.returncode != 0:
+            send_message(f"[오류 발생]\n일일 리포트 생성 중 에러가 발생했습니다:\n{result.stderr.strip()}")
+            return
+        stdout_val = result.stdout.strip()
+        send_message("[일일 PT 리포트]\n\n" + (stdout_val if stdout_val else "리포트 생성 내용이 없습니다."))
         return
 
     # /weekly 리포트 요청 처리
@@ -42,7 +46,11 @@ def handle_text(text):
             ["python3", str(BASE_DIR / "reports/weekly_report.py")],
             capture_output=True, text=True
         )
-        send_message("[주간 PT 리포트]\n\n" + (result.stdout.strip() if result.stdout.strip() else "주간 데이터가 없습니다."))
+        if result.returncode != 0:
+            send_message(f"[오류 발생]\n주간 리포트 생성 중 에러가 발생했습니다:\n{result.stderr.strip()}")
+            return
+        stdout_val = result.stdout.strip()
+        send_message("[주간 PT 리포트]\n\n" + (stdout_val if stdout_val else "주간 데이터가 없습니다."))
         return
 
     # /help 도움말
@@ -55,7 +63,12 @@ def handle_text(text):
         ["python3", str(BASE_DIR / "scripts/save_message.py"), text],
         capture_output=True, text=True
     )
-    send_message(result.stdout.strip())
+    if result.returncode != 0:
+        send_message(f"[오류 발생]\n기록 저장 중 에러가 발생했습니다:\n{result.stderr.strip()}")
+        return
+    stdout_val = result.stdout.strip()
+    if stdout_val:
+        send_message(stdout_val)
 
 def main():
     if not TELEGRAM_BOT_TOKEN:
