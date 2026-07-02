@@ -18,64 +18,635 @@ HTML = """
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI PT 대시보드</title>
+  <!-- Google Fonts & Lucide Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f6f7f9; color: #222; }
-    header { background: #111827; color: white; padding: 24px; }
-    main { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    h1 { margin: 0; font-size: 28px; }
-    h2 { margin-top: 32px; font-size: 20px; }
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    .card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
-    .value { font-size: 28px; font-weight: 700; margin-top: 8px; }
-    table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
-    th, td { border-bottom: 1px solid #e5e7eb; padding: 10px; text-align: left; vertical-align: top; }
-    th { background: #f3f4f6; }
-    pre { white-space: pre-wrap; line-height: 1.6; }
-    @media (max-width: 800px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } main { padding: 14px; } }
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131a26;
+      --bg-tertiary: #1b2434;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border-color: #243048;
+      --card-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, #0f172a 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 24px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+    }
+
+    header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #ffffff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background-color: var(--bg-primary);
+      padding: 6px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: white;
+      background-color: var(--bg-tertiary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+    }
+
+    main {
+      flex: 1;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 40px;
+    }
+
+    .grid-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+    }
+
+    .stat-card.workouts::before { background-color: var(--accent-cyan); }
+    .stat-card.meals::before { background-color: var(--accent-emerald); }
+    .stat-card.vitals::before { background-color: var(--accent-purple); }
+    .stat-card.weight::before { background-color: var(--accent-amber); }
+
+    .stat-label {
+      font-size: 13px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      color: white;
+      margin-top: 6px;
+    }
+
+    .stat-icon {
+      background-color: var(--bg-tertiary);
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .stat-card.workouts .stat-icon { color: var(--accent-cyan); }
+    .stat-card.meals .stat-icon { color: var(--accent-emerald); }
+    .stat-card.vitals .stat-icon { color: var(--accent-purple); }
+    .stat-card.weight .stat-icon { color: var(--accent-amber); }
+
+    .dashboard-content {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out forwards;
+    }
+
+    .dashboard-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    .card-title i {
+      color: var(--accent-cyan);
+    }
+
+    .report-box {
+      background-color: var(--bg-tertiary);
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid var(--border-color);
+      font-size: 15px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      color: #e2e8f0;
+      position: relative;
+    }
+
+    .report-box::after {
+      content: '""';
+      position: absolute;
+      right: 20px;
+      bottom: 10px;
+      font-size: 80px;
+      color: rgba(255, 255, 255, 0.03);
+      font-family: serif;
+      line-height: 1;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-secondary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--bg-tertiary);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border-color);
+      color: #cbd5e1;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-breakfast { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge-lunch { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .badge-dinner { background-color: rgba(6, 182, 212, 0.15); color: #22d3ee; }
+    .badge-snack { background-color: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+    .badge-default { background-color: rgba(156, 163, 175, 0.15); color: #d1d5db; }
+
+    .condition-text {
+      background-color: var(--bg-tertiary);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .date-col {
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .exercise-badge {
+      background-color: rgba(6, 182, 212, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .empty-state i {
+      display: block;
+      margin: 0 auto 12px;
+      color: var(--border-color);
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .grid-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      header { padding: 20px; flex-direction: column; align-items: stretch; }
+      .nav-tabs { width: 100%; justify-content: space-around; }
+      main { padding: 20px; }
+      .grid-stats { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>AI PT 대시보드</h1>
-    <p>운동, 식단, 체중, 리포트를 한 곳에서 확인합니다.</p>
-  </header>
-  <main>
-    <section class="grid">
-      <div class="card"><div>운동 기록</div><div class="value">{{ workout_count }}</div></div>
-      <div class="card"><div>식단 기록</div><div class="value">{{ meal_count }}</div></div>
-      <div class="card"><div>바이탈 기록</div><div class="value">{{ vital_count }}</div></div>
-      <div class="card"><div>최근 체중</div><div class="value">{{ latest_weight or "-" }}</div></div>
-    </section>
-    <h2>최근 AI 리포트</h2>
-    <div class="card">
-      <pre>{{ latest_report or "아직 리포트가 없습니다." }}</pre>
+    <div class="brand-section">
+      <div class="brand-icon">
+        <i data-lucide="dumbbell"></i>
+      </div>
+      <div>
+        <h1>AI PT 대시보드</h1>
+        <p>운동, 식단, 체중, 리포트를 한 곳에서 실시간 확인합니다.</p>
+      </div>
     </div>
-    <h2>최근 운동 기록</h2>
-    <table>
-      <tr><th>날짜</th><th>운동</th><th>메모</th></tr>
-      {% for row in workouts %}
-      <tr><td>{{ row.record_date }}</td><td>{{ row.exercise_name }}</td><td>{{ row.memo }}</td></tr>
-      {% endfor %}
-    </table>
-    <h2>최근 식단 기록</h2>
-    <table>
-      <tr><th>날짜</th><th>구분</th><th>내용</th></tr>
-      {% for row in meals %}
-      <tr><td>{{ row.record_date }}</td><td>{{ row.meal_type or "-" }}</td><td>{{ row.food_text }}</td></tr>
-      {% endfor %}
-    </table>
-    <h2>최근 체중/수면</h2>
-    <table>
-      <tr><th>날짜</th><th>체중</th><th>수면</th><th>컨디션</th></tr>
-      {% for row in vitals %}
-      <tr><td>{{ row.record_date }}</td><td>{{ row.body_weight_kg or "-" }}</td><td>{{ row.sleep_hours or "-" }}</td><td>{{ row.condition_text or "-" }}</td></tr>
-      {% endfor %}
-    </table>
+    
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('tab-overview')">
+        <i data-lucide="layout-dashboard"></i> 오버뷰
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-workouts')">
+        <i data-lucide="activity"></i> 운동 기록
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-meals')">
+        <i data-lucide="salad"></i> 식단 기록
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-vitals')">
+        <i data-lucide="heart-pulse"></i> 체중 & 바이탈
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- KPI Stats Section -->
+    <section class="grid-stats">
+      <div class="stat-card workouts">
+        <div>
+          <div class="stat-label">누적 운동 기록</div>
+          <div class="stat-value">{{ workout_count }}</div>
+        </div>
+        <div class="stat-icon"><i data-lucide="flame"></i></div>
+      </div>
+      <div class="stat-card meals">
+        <div>
+          <div class="stat-label">누적 식단 기록</div>
+          <div class="stat-value">{{ meal_count }}</div>
+        </div>
+        <div class="stat-icon"><i data-lucide="apple"></i></div>
+      </div>
+      <div class="stat-card vitals">
+        <div>
+          <div class="stat-label">누적 바이탈</div>
+          <div class="stat-value">{{ vital_count }}</div>
+        </div>
+        <div class="stat-icon"><i data-lucide="scale"></i></div>
+      </div>
+      <div class="stat-card weight">
+        <div>
+          <div class="stat-label">최근 체중</div>
+          <div class="stat-value">{{ latest_weight or "-" }} <span style="font-size:16px; font-weight:normal; color:var(--text-muted);">{{ "kg" if latest_weight else "" }}</span></div>
+        </div>
+        <div class="stat-icon"><i data-lucide="trending-up"></i></div>
+      </div>
+    </section>
+
+    <!-- Tab 1: Overview -->
+    <div id="tab-overview" class="dashboard-content active">
+      <div class="dashboard-grid">
+        <!-- Left column: AI Report -->
+        <div class="card">
+          <div class="card-title">
+            <i data-lucide="sparkles" style="color: var(--accent-purple);"></i> 최근 AI 피드백 리포트
+          </div>
+          {% if latest_report %}
+          <div class="report-box">{{ latest_report }}</div>
+          {% else %}
+          <div class="empty-state">
+            <i data-lucide="message-square-off" size="48"></i>
+            아직 리포트가 생성되지 않았습니다. 텔레그램에서 /daily 또는 /weekly를 입력해 리포트를 생성해 보세요.
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Right column: Quick overview of latest activity -->
+        <div class="card">
+          <div class="card-title">
+            <i data-lucide="clock" style="color: var(--accent-amber);"></i> 실시간 운동 현황
+          </div>
+          {% if workouts %}
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>운동</th>
+                  <th>날짜</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in workouts[:5] %}
+                <tr>
+                  <td><span class="exercise-badge">{{ row.exercise_name }}</span></td>
+                  <td class="date-col">{{ row.record_date }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <i data-lucide="clipboard-list" size="48"></i>
+            오늘 등록된 운동 내역이 없습니다.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Workouts -->
+    <div id="tab-workouts" class="dashboard-content">
+      <div class="card">
+        <div class="card-title"><i data-lucide="activity"></i> 전체 운동 기록 내역</div>
+        {% if workouts %}
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 150px;">날짜</th>
+                <th style="width: 250px;">운동 종목</th>
+                <th>상세 메모</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in workouts %}
+              <tr>
+                <td class="date-col">{{ row.record_date }}</td>
+                <td><span class="exercise-badge">{{ row.exercise_name }}</span></td>
+                <td>{{ row.memo or "-" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i data-lucide="award" size="48"></i>
+          운동 기록이 비어 있습니다. 텔레그램을 통해 첫 운동을 등록해 보세요!
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Tab 3: Meals -->
+    <div id="tab-meals" class="dashboard-content">
+      <div class="card">
+        <div class="card-title"><i data-lucide="salad"></i> 전체 식단 기록 내역</div>
+        {% if meals %}
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 150px;">날짜</th>
+                <th style="width: 120px;">식사 구분</th>
+                <th>메뉴 및 상세 내용</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in meals %}
+              <tr>
+                <td class="date-col">{{ row.record_date }}</td>
+                <td>
+                  {% if row.meal_type == '아침' %}
+                    <span class="badge badge-breakfast">아침</span>
+                  {% elif row.meal_type == '점심' %}
+                    <span class="badge badge-lunch">점심</span>
+                  {% elif row.meal_type == '저녁' %}
+                    <span class="badge badge-dinner">저녁</span>
+                  {% elif row.meal_type == '간식' %}
+                    <span class="badge badge-snack">간식</span>
+                  {% else %}
+                    <span class="badge badge-default">{{ row.meal_type or "미분류" }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ row.food_text }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i data-lucide="cookie" size="48"></i>
+          식단 기록이 비어 있습니다. 오늘 먹은 음식을 텔레그램에 적어 보세요!
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Tab 4: Vitals -->
+    <div id="tab-vitals" class="dashboard-content">
+      <div class="card">
+        <div class="card-title"><i data-lucide="scale"></i> 체중 & 수면 및 컨디션 기록</div>
+        {% if vitals %}
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 180px;">날짜</th>
+                <th style="width: 150px;">체중 (kg)</th>
+                <th style="width: 150px;">수면 시간 (시간)</th>
+                <th>컨디션 및 메모</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in vitals %}
+              <tr>
+                <td class="date-col">{{ row.record_date }}</td>
+                <td style="font-weight: 600; color: white;">{{ row.body_weight_kg or "-" }} {{ "kg" if row.body_weight_kg else "" }}</td>
+                <td>{{ row.sleep_hours or "-" }} {{ "시간" if row.sleep_hours else "" }}</td>
+                <td>
+                  {% if row.condition_text %}
+                    <span class="condition-text">{{ row.condition_text }}</span>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i data-lucide="line-chart" size="48"></i>
+          바이탈 기록이 아직 없습니다. 체중이나 수면 시간을 입력해 보세요!
+        </div>
+        {% endif %}
+      </div>
+    </div>
   </main>
+
+  <script>
+    // Lucide 아이콘 초기화
+    lucide.createIcons();
+
+    // 탭 전환 함수
+    function switchTab(tabId) {
+      // 모든 탭 콘텐츠 숨기기
+      const contents = document.querySelectorAll('.dashboard-content');
+      contents.forEach(c => c.classList.remove('active'));
+
+      // 모든 탭 버튼 active 클래스 해제
+      const buttons = document.querySelectorAll('.tab-btn');
+      buttons.forEach(b => b.classList.remove('active'));
+
+      // 선택한 탭 콘텐츠 표시 및 버튼 활성화
+      document.getElementById(tabId).classList.add('active');
+      
+      // 클릭한 버튼 활성화
+      event.currentTarget.classList.add('active');
+    }
+  </script>
 </body>
 </html>
 """
+
 
 @app.route("/")
 def index():
