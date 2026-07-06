@@ -384,6 +384,27 @@ HTML = """
       main { padding: 20px; }
       .grid-stats { grid-template-columns: 1fr; }
     }
+
+    .delete-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .delete-btn:hover {
+      color: #ef4444;
+      background-color: rgba(239, 68, 68, 0.1);
+    }
+    .delete-btn i {
+      width: 16px;
+      height: 16px;
+    }
   </style>
 </head>
 <body>
@@ -511,6 +532,7 @@ HTML = """
                 <th style="width: 150px;">날짜</th>
                 <th style="width: 250px;">운동 종목</th>
                 <th>상세 메모</th>
+                <th style="width: 80px; text-align: center;">삭제</th>
               </tr>
             </thead>
             <tbody>
@@ -519,6 +541,11 @@ HTML = """
                 <td class="date-col">{{ row.record_date }}</td>
                 <td><span class="exercise-badge">{{ row.exercise_name }}</span></td>
                 <td>{{ row.memo or "-" }}</td>
+                <td style="text-align: center;">
+                  <button class="delete-btn" onclick="deleteRecord('workouts', {{ row.id }})" title="삭제">
+                    <i data-lucide="trash-2"></i>
+                  </button>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -545,6 +572,7 @@ HTML = """
                 <th style="width: 150px;">날짜</th>
                 <th style="width: 120px;">식사 구분</th>
                 <th>메뉴 및 상세 내용</th>
+                <th style="width: 80px; text-align: center;">삭제</th>
               </tr>
             </thead>
             <tbody>
@@ -565,6 +593,11 @@ HTML = """
                   {% endif %}
                 </td>
                 <td>{{ row.food_text }}</td>
+                <td style="text-align: center;">
+                  <button class="delete-btn" onclick="deleteRecord('meals', {{ row.id }})" title="삭제">
+                    <i data-lucide="trash-2"></i>
+                  </button>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -592,6 +625,7 @@ HTML = """
                 <th style="width: 150px;">체중 (kg)</th>
                 <th style="width: 150px;">수면 시간 (시간)</th>
                 <th>컨디션 및 메모</th>
+                <th style="width: 80px; text-align: center;">삭제</th>
               </tr>
             </thead>
             <tbody>
@@ -606,6 +640,11 @@ HTML = """
                   {% else %}
                     -
                   {% endif %}
+                </td>
+                <td style="text-align: center;">
+                  <button class="delete-btn" onclick="deleteRecord('vitals', {{ row.id }})" title="삭제">
+                    <i data-lucide="trash-2"></i>
+                  </button>
                 </td>
               </tr>
               {% endfor %}
@@ -642,10 +681,45 @@ HTML = """
       // 클릭한 버튼 활성화
       event.currentTarget.classList.add('active');
     }
+
+    // 기록 삭제 함수
+    function deleteRecord(category, id) {
+      if (confirm('정말로 이 기록을 삭제하시겠습니까?')) {
+        fetch('/delete/' + category + '/' + id, {
+          method: 'POST'
+        }).then(response => {
+          if (response.ok) {
+            location.reload();
+          } else {
+            alert('삭제에 실패했습니다.');
+          }
+        }).catch(err => {
+          console.error(err);
+          alert('오류가 발생했습니다.');
+        });
+      }
+    }
   </script>
 </body>
 </html>
 """
+
+
+@app.route("/delete/<string:category>/<int:record_id>", methods=["POST"])
+def delete_record(category, record_id):
+    if category not in ["workouts", "meals", "vitals"]:
+        return "Invalid category", 400
+    
+    conn = get_conn()
+    try:
+        conn.execute(f"DELETE FROM {category} WHERE id = ?", (record_id,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return f"Error: {e}", 500
+    finally:
+        conn.close()
+    return "OK", 200
 
 
 @app.route("/")

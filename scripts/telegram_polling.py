@@ -11,7 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 # 2. 매뉴얼에서 정의한 모듈 임포트
 from scripts.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, BASE_DIR
 from scripts.send_telegram import send_message
-from scripts.ai_helper import generate_response
+from scripts.ai_helper import generate_response, generate_image_response
 
 API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
@@ -84,6 +84,76 @@ def handle_text(text):
     if response_message:
         send_message(response_message)
 
+def handle_photo(photo, caption):
+    # 가장 큰 크기의 사진 선택
+    large_photo = photo[-1]
+    file_id = large_photo.get("file_id")
+    
+    try:
+        # 파일 경로 획득
+        file_res = requests.get(f"{API_URL}/getFile", params={"file_id": file_id}, timeout=15)
+        file_res.raise_for_status()
+        file_path = file_res.json().get("result", {}).get("file_path")
+        if not file_path:
+            send_message("사진 파일 경로를 획득하는 데 실패했습니다.")
+            return
+            
+        # 사진 이진 파일 다운로드
+        img_res = requests.get(f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}", timeout=30)
+        img_res.raise_for_status()
+        image_bytes = img_res.content
+    except Exception as e:
+        send_message(f"사진 다운로드 중 에러 발생: {e}")
+        return
+
+    send_message("사진을 분석하고 있습니다. 잠시만 기다려 주세요...")
+    
+    # Gemini를 통해 이미지 내용 분석
+    ai_raw_response = generate_image_response(image_bytes, mime_type="image/jpeg")
+    
+    # [기록 데이터] 및 [코칭 피드백] 파싱
+    db_text = ""
+    coaching_feedback = ""
+    
+    if "[기록 데이터]" in ai_raw_response:
+        parts = ai_raw_response.split("[코칭 피드백]", 1)
+        db_part = parts[0].replace("[기록 데이터]", "").strip()
+        coaching_part = parts[1].strip() if len(parts) > 1 else ""
+        db_text = db_part
+        coaching_feedback = coaching_part
+    else:
+        coaching_feedback = ai_raw_response
+        
+    # 사용자가 사진과 함께 보낸 캡션(텍스트)이 있다면 분석 텍스트 뒤에 덧붙여 줌
+    if caption and db_text:
+        db_text += f"\n{caption}"
+    elif caption and not db_text:
+        db_text = caption
+
+    stdout_val = ""
+    if db_text.strip():
+        # 데이터베이스 자동 기록을 위한 save_message.py 호출
+        result = subprocess.run(
+            [sys.executable, str(BASE_DIR / "scripts/save_message.py"), db_text],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            stdout_val = result.stdout.strip()
+        else:
+            stdout_val = f"[기록 저장 실패]\n{result.stderr.strip()}"
+            
+    # 최종 답변 합산하여 전송
+    response_message = ""
+    if stdout_val:
+        response_message += stdout_val
+    if coaching_feedback:
+        if response_message:
+            response_message += "\n\n"
+        response_message += coaching_feedback
+        
+    if response_message:
+        send_message(response_message)
+
 def main():
     if not TELEGRAM_BOT_TOKEN:
         raise RuntimeError("TELEGRAM_BOT_TOKEN이 설정되지 않았습니다.")
@@ -104,7 +174,12 @@ def main():
                     continue
                     
                 text = message.get("text", "").strip()
-                if text:
+                photo = message.get("photo")
+                caption = message.get("caption", "").strip()
+                
+                if photo:
+                    handle_photo(photo, caption)
+                elif text:
                     handle_text(text)
         except Exception as e:
             print(f"오류 발생: {e}")
