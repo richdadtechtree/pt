@@ -676,11 +676,30 @@ HTML = """
       buttons.forEach(b => b.classList.remove('active'));
 
       // 선택한 탭 콘텐츠 표시 및 버튼 활성화
-      document.getElementById(tabId).classList.add('active');
+      const targetContent = document.getElementById(tabId);
+      if (targetContent) {
+        targetContent.classList.add('active');
+      }
       
-      // 클릭한 버튼 활성화
-      event.currentTarget.classList.add('active');
+      // 해당 탭을 트리거하는 버튼 활성화
+      const targetBtn = Array.from(buttons).find(b => b.getAttribute('onclick').includes(tabId));
+      if (targetBtn) {
+        targetBtn.classList.add('active');
+      }
+
+      // sessionStorage에 현재 탭 상태 저장
+      sessionStorage.setItem('activeTab', tabId);
     }
+
+    // 페이지 로드 시 기존 탭 상태 복원
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedTab = sessionStorage.getItem('activeTab');
+      if (savedTab && document.getElementById(savedTab)) {
+        switchTab(savedTab);
+      } else {
+        switchTab('tab-overview');
+      }
+    });
 
     // 기록 삭제 함수
     function deleteRecord(category, id) {
