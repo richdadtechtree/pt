@@ -50,7 +50,7 @@ def save_vitals_if_present(text):
     return True
 
 def save_workout_if_present(text):
-    keywords = ["운동", "스쿼트", "벤치", "데드", "런닝", "걷기", "레그", "랫풀", "로우", "프레스"] 
+    keywords = ["운동", "스쿼트", "벤치", "데드", "런닝", "걷기", "레그", "랫풀", "로우", "프레스", "풀업", "턱걸이"] 
     if not any(k in text for k in keywords):
         return 0
         
@@ -60,12 +60,28 @@ def save_workout_if_present(text):
     cur = conn.cursor()
     for line in lines:
         if any(k in line for k in keywords):
+            # 횟수(Reps) 및 세트(Sets) 파싱
+            reps = None
+            sets = None
+            
+            reps_match = re.search(r"(\d+)\s*(?:회|개|reps|rep)", line, re.IGNORECASE)
+            if reps_match:
+                reps = int(reps_match.group(1))
+            else:
+                fallback_match = re.search(r"(?:풀업|턱걸이|스쿼트|벤치|데드|랫풀|런닝)\s*(\d+)", line)
+                if fallback_match:
+                    reps = int(fallback_match.group(1))
+                    
+            sets_match = re.search(r"(\d+)\s*(?:세트|set)", line, re.IGNORECASE)
+            if sets_match:
+                sets = int(sets_match.group(1))
+                
             cur.execute(
                 """
-                INSERT INTO workouts (record_date, exercise_name, memo)
-                VALUES (?, ?, ?)
+                INSERT INTO workouts (record_date, exercise_name, memo, reps, sets)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (date.today().isoformat(), line[:80], line),
+                (date.today().isoformat(), line[:80], line, reps, sets),
             )
             count += 1
     conn.commit()

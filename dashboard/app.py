@@ -1,11 +1,13 @@
 from pathlib import Path
 import sys
+import json
+from datetime import date, timedelta
 
 # 프로젝트 경로 설정
 sys.path.append(str(Path("/home/ubuntu/pt_system")))
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, request
 from scripts.db import get_conn
 
 app = Flask(__name__)
@@ -23,6 +25,7 @@ HTML = """
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg-primary: #0b0f19;
@@ -405,6 +408,215 @@ HTML = """
       width: 16px;
       height: 16px;
     }
+
+    /* Modal & Edit Button Styling */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+      animation: modalFadeIn 0.2s ease;
+    }
+    @keyframes modalFadeIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      color: white;
+    }
+    .modal-header h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .close-modal-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 20px;
+      transition: color 0.2s;
+    }
+    .close-modal-btn:hover {
+      color: white;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 16px;
+    }
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-secondary {
+      background-color: var(--bg-tertiary);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+    .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+    }
+    .edit-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      margin-right: 4px;
+    }
+    .edit-btn:hover {
+      color: var(--accent-cyan);
+      background-color: rgba(6, 182, 212, 0.1);
+    }
+    .edit-btn i {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Calendar & Streak Banner Styling */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      text-align: center;
+      margin-top: 12px;
+    }
+    .calendar-day-header {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 6px 0;
+    }
+    .calendar-day {
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    .calendar-day.today {
+      border-color: var(--accent-cyan);
+      color: white;
+    }
+    .calendar-day.has-workout {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+      border-color: var(--accent-emerald);
+      color: #34d399;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+    .calendar-day.has-workout::after {
+      content: '🔥';
+      font-size: 9px;
+      position: absolute;
+      bottom: 2px;
+    }
+    .calendar-day.empty {
+      background: transparent;
+      border: none;
+    }
+    .calendar-header-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: white;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    /* Challenge Grid Styling */
+    .challenge-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 992px) {
+      .challenge-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -470,9 +682,70 @@ HTML = """
 
     <!-- Tab 1: Overview -->
     <div id="tab-overview" class="dashboard-content active">
-      <div class="dashboard-grid">
+      <!-- Challenge Banners Grid -->
+      <div class="challenge-grid">
+        <!-- Streak Challenge Banner -->
+        <div class="card streak-card" style="background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%); border: 1px solid #4c1d95; margin-bottom: 0;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="background: rgba(245, 158, 11, 0.15); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);">
+                <i data-lucide="flame" style="width: 32px; height: 32px;"></i>
+              </div>
+              <div>
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: white;">연속 운동 챌린지</h3>
+                <p style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">
+                  {% if streak_count > 0 %}
+                    오늘도 불꽃을 이어가세요! 현재 <strong>{{ streak_count }}일 연속</strong> 운동 달성 중입니다. 🔥
+                  {% else %}
+                    아직 연속 운동 기록이 없습니다. 오늘 가볍게 운동을 시작해서 첫 불꽃을 피워보세요!
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: #f59e0b; background: rgba(255, 255, 255, 0.05); padding: 8px 20px; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.2); white-space: nowrap;">
+              {{ streak_count }}일 연속
+            </div>
+          </div>
+        </div>
+
+        <!-- Pull-up Challenge Banner -->
+        <div class="card pullup-card" style="background: linear-gradient(135deg, #064e3b 0%, #022c22 100%); border: 1px solid #065f46; margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="background: rgba(16, 185, 129, 0.15); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #34d399; box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);">
+                <i data-lucide="award" style="width: 32px; height: 32px;"></i>
+              </div>
+              <div>
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: white;">풀업 챌린지 (PR)</h3>
+                <p style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">
+                  {% if pullup_pr > 0 %}
+                    하루 최대 <strong>{{ pullup_pr }}회</strong> 성공! 최고 기록을 깨봅시다! 💪
+                  {% else %}
+                    아직 풀업 기록이 없습니다. 오늘 턱걸이 기록을 남겨보세요!
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: #34d399; background: rgba(255, 255, 255, 0.05); padding: 8px 20px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2); white-space: nowrap;">
+              최고 {{ pullup_pr }}회
+            </div>
+          </div>
+          {% if pullup_history %}
+          <div style="margin-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px; display: flex; gap: 10px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap;">
+            <span style="font-weight:600; color: white;">최근 기록:</span>
+            {% for h in pullup_history %}
+              <span style="background: rgba(255, 255, 255, 0.03); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                {{ h.date[5:] }} ({{ h.reps }}회)
+              </span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="dashboard-grid" style="margin-top: 24px;">
         <!-- Left column: AI Report -->
-        <div class="card">
+        <div class="card" style="margin-bottom: 0;">
           <div class="card-title">
             <i data-lucide="sparkles" style="color: var(--accent-purple);"></i> 최근 AI 피드백 리포트
           </div>
@@ -486,36 +759,47 @@ HTML = """
           {% endif %}
         </div>
 
-        <!-- Right column: Quick overview of latest activity -->
-        <div class="card">
-          <div class="card-title">
-            <i data-lucide="clock" style="color: var(--accent-amber);"></i> 실시간 운동 현황
+        <!-- Right column: Calendar & Quick overview -->
+        <div>
+          <!-- Calendar Card -->
+          <div class="card">
+            <div class="card-title">
+              <i data-lucide="calendar" style="color: var(--accent-emerald);"></i> 이번 달 운동 달력
+            </div>
+            <div id="calendar-container"></div>
           </div>
-          {% if workouts %}
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>운동</th>
-                  <th>날짜</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in workouts[:5] %}
-                <tr>
-                  <td><span class="exercise-badge">{{ row.exercise_name }}</span></td>
-                  <td class="date-col">{{ row.record_date }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+
+          <!-- Existing Workout List Card -->
+          <div class="card" style="margin-bottom: 0; margin-top: 24px;">
+            <div class="card-title">
+              <i data-lucide="clock" style="color: var(--accent-amber);"></i> 실시간 운동 현황
+            </div>
+            {% if workouts %}
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>운동</th>
+                    <th>날짜</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in workouts[:5] %}
+                  <tr>
+                    <td><span class="exercise-badge">{{ row.exercise_name }}</span></td>
+                    <td class="date-col">{{ row.record_date }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+              <i data-lucide="clipboard-list" size="48"></i>
+              오늘 등록된 운동 내역이 없습니다.
+            </div>
+            {% endif %}
           </div>
-          {% else %}
-          <div class="empty-state">
-            <i data-lucide="clipboard-list" size="48"></i>
-            오늘 등록된 운동 내역이 없습니다.
-          </div>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -532,7 +816,7 @@ HTML = """
                 <th style="width: 150px;">날짜</th>
                 <th style="width: 250px;">운동 종목</th>
                 <th>상세 메모</th>
-                <th style="width: 80px; text-align: center;">삭제</th>
+                <th style="width: 100px; text-align: center;">관리</th>
               </tr>
             </thead>
             <tbody>
@@ -542,6 +826,16 @@ HTML = """
                 <td><span class="exercise-badge">{{ row.exercise_name }}</span></td>
                 <td>{{ row.memo or "-" }}</td>
                 <td style="text-align: center;">
+                  <button class="edit-btn" 
+                          data-category="workouts" 
+                          data-id="{{ row.id }}" 
+                          data-date="{{ row.record_date }}" 
+                          data-name="{{ row.exercise_name }}" 
+                          data-content="{{ row.memo or '' }}"
+                          onclick="triggerEdit(this)" 
+                          title="수정">
+                    <i data-lucide="edit-3"></i>
+                  </button>
                   <button class="delete-btn" onclick="deleteRecord('workouts', {{ row.id }})" title="삭제">
                     <i data-lucide="trash-2"></i>
                   </button>
@@ -572,7 +866,7 @@ HTML = """
                 <th style="width: 150px;">날짜</th>
                 <th style="width: 120px;">식사 구분</th>
                 <th>메뉴 및 상세 내용</th>
-                <th style="width: 80px; text-align: center;">삭제</th>
+                <th style="width: 100px; text-align: center;">관리</th>
               </tr>
             </thead>
             <tbody>
@@ -594,6 +888,16 @@ HTML = """
                 </td>
                 <td>{{ row.food_text }}</td>
                 <td style="text-align: center;">
+                  <button class="edit-btn" 
+                          data-category="meals" 
+                          data-id="{{ row.id }}" 
+                          data-date="{{ row.record_date }}" 
+                          data-name="{{ row.meal_type or '미분류' }}" 
+                          data-content="{{ row.food_text or '' }}"
+                          onclick="triggerEdit(this)" 
+                          title="수정">
+                    <i data-lucide="edit-3"></i>
+                  </button>
                   <button class="delete-btn" onclick="deleteRecord('meals', {{ row.id }})" title="삭제">
                     <i data-lucide="trash-2"></i>
                   </button>
@@ -614,7 +918,17 @@ HTML = """
 
     <!-- Tab 4: Vitals -->
     <div id="tab-vitals" class="dashboard-content">
+      <!-- Weight Trend Chart -->
       <div class="card">
+        <div class="card-title">
+          <i data-lucide="trending-down" style="color: var(--accent-cyan);"></i> 체중 변화 추이 (최근 기록)
+        </div>
+        <div style="position: relative; height: 300px; width: 100%;">
+          <canvas id="weightChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 24px;">
         <div class="card-title"><i data-lucide="scale"></i> 체중 & 수면 및 컨디션 기록</div>
         {% if vitals %}
         <div class="table-container">
@@ -691,7 +1005,7 @@ HTML = """
       sessionStorage.setItem('activeTab', tabId);
     }
 
-    // 페이지 로드 시 기존 탭 상태 복원
+    // 페이지 로드 시 기존 탭 상태 복원 및 신규 구성요소 초기화
     window.addEventListener('DOMContentLoaded', () => {
       const savedTab = sessionStorage.getItem('activeTab');
       if (savedTab && document.getElementById(savedTab)) {
@@ -699,7 +1013,127 @@ HTML = """
       } else {
         switchTab('tab-overview');
       }
+
+      // 달력 및 차트 렌더링
+      const workoutDates = {{ workout_dates_json | safe }};
+      renderCalendar(workoutDates);
+
+      const weightLabels = {{ weight_labels_json | safe }};
+      const weightValues = {{ weight_values_json | safe }};
+      renderWeightChart(weightLabels, weightValues);
     });
+
+    // 달력 렌더링 함수
+    function renderCalendar(workoutDates) {
+      const container = document.getElementById('calendar-container');
+      if (!container) return;
+
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth(); // 0-11
+
+      const monthNames = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+      
+      let html = `<div class="calendar-header-title">${year}년 ${monthNames[month]}</div>`;
+      html += `<div class="calendar-grid">`;
+      
+      const daysOfWeek = ["일", "월", "화", "수", "목", "금", "토"];
+      daysOfWeek.forEach(d => {
+        html += `<div class="calendar-day-header">${d}</div>`;
+      });
+
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDayIndex; i++) {
+        html += `<div class="calendar-day empty"></div>`;
+      }
+
+      for (let day = 1; day <= totalDays; day++) {
+        const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const hasWorkout = workoutDates.includes(dStr);
+        const isToday = day === today.getDate();
+
+        let dayClass = "calendar-day";
+        if (hasWorkout) dayClass += " has-workout";
+        if (isToday) dayClass += " today";
+
+        html += `<div class="${dayClass}">${day}</div>`;
+      }
+
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // 체중 차트 렌더링 함수
+    function renderWeightChart(labels, values) {
+      const ctx = document.getElementById('weightChart');
+      if (!ctx) return;
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '체중 (kg)',
+            data: values,
+            borderColor: '#06b6d4',
+            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.3,
+            pointBackgroundColor: '#06b6d4',
+            pointBorderColor: '#ffffff',
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: '#06b6d4',
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#131a26',
+              titleColor: '#9ca3af',
+              bodyColor: '#ffffff',
+              borderColor: '#243048',
+              borderWidth: 1,
+              padding: 10,
+              displayColors: false
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(36, 48, 72, 0.5)'
+              },
+              ticks: {
+                color: '#9ca3af',
+                font: {
+                  size: 11
+                }
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(36, 48, 72, 0.5)'
+              },
+              ticks: {
+                color: '#9ca3af',
+                font: {
+                  size: 11
+                }
+              }
+            }
+          }
+        }
+      });
+    }
 
     // 기록 삭제 함수
     function deleteRecord(category, id) {
@@ -718,10 +1152,196 @@ HTML = """
         });
       }
     }
+
+    // 모달 데이터 로드 대행 함수
+    function triggerEdit(btn) {
+      const category = btn.getAttribute('data-category');
+      const id = btn.getAttribute('data-id');
+      const dateVal = btn.getAttribute('data-date');
+      const nameVal = btn.getAttribute('data-name');
+      const contentVal = btn.getAttribute('data-content');
+      openEditModal(category, id, dateVal, nameVal, contentVal);
+    }
+
+    // 모달 열기 함수
+    function openEditModal(category, id, dateVal, typeOrNameVal, contentVal) {
+      document.getElementById('editCategory').value = category;
+      document.getElementById('editId').value = id;
+      document.getElementById('editDate').value = dateVal;
+      
+      const modalTitle = document.getElementById('modalTitle');
+      const groupExerciseName = document.getElementById('groupExerciseName');
+      const groupMealType = document.getElementById('groupMealType');
+      const labelContent = document.getElementById('labelContent');
+      
+      if (category === 'workouts') {
+        modalTitle.innerText = "운동 기록 수정";
+        groupExerciseName.style.display = "block";
+        groupMealType.style.display = "none";
+        document.getElementById('editExerciseName').value = typeOrNameVal;
+        labelContent.innerText = "상세 메모";
+        document.getElementById('editContent').value = contentVal;
+      } else if (category === 'meals') {
+        modalTitle.innerText = "식단 기록 수정";
+        groupExerciseName.style.display = "none";
+        groupMealType.style.display = "block";
+        document.getElementById('editMealType').value = typeOrNameVal;
+        labelContent.innerText = "메뉴 및 상세 내용";
+        document.getElementById('editContent').value = contentVal;
+      }
+      
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    // 모달 닫기 함수
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    // 수정 내용 저장 제출
+    function saveEdit(e) {
+      e.preventDefault();
+      
+      const category = document.getElementById('editCategory').value;
+      const id = document.getElementById('editId').value;
+      
+      const formData = new FormData();
+      formData.append('record_date', document.getElementById('editDate').value);
+      
+      if (category === 'workouts') {
+        formData.append('exercise_name', document.getElementById('editExerciseName').value);
+        formData.append('memo', document.getElementById('editContent').value);
+      } else if (category === 'meals') {
+        formData.append('meal_type', document.getElementById('editMealType').value);
+        formData.append('food_text', document.getElementById('editContent').value);
+      }
+      
+      fetch('/edit/' + category + '/' + id, {
+        method: 'POST',
+        body: formData
+      }).then(response => {
+        if (response.ok) {
+          location.reload();
+        } else {
+          alert('수정에 실패했습니다.');
+        }
+      }).catch(err => {
+        console.error(err);
+        alert('오류가 발생했습니다.');
+      });
+    }
   </script>
+
+  <!-- Edit Modal Layout -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">기록 수정</h3>
+        <button class="close-modal-btn" onclick="closeEditModal()">&times;</button>
+      </div>
+      <form id="editForm" onsubmit="saveEdit(event)">
+        <input type="hidden" id="editCategory">
+        <input type="hidden" id="editId">
+        
+        <div class="form-group">
+          <label for="editDate">날짜</label>
+          <input type="date" id="editDate" class="form-control" required>
+        </div>
+        
+        <!-- For Workouts: Exercise Name -->
+        <div class="form-group" id="groupExerciseName" style="display: none;">
+          <label for="editExerciseName">운동 종목</label>
+          <input type="text" id="editExerciseName" class="form-control">
+        </div>
+        
+        <!-- For Meals: Meal Type -->
+        <div class="form-group" id="groupMealType" style="display: none;">
+          <label for="editMealType">식사 구분</label>
+          <select id="editMealType" class="form-control">
+            <option value="아침">아침</option>
+            <option value="점심">점심</option>
+            <option value="저녁">저녁</option>
+            <option value="간식">간식</option>
+          </select>
+        </div>
+        
+        <!-- Text content (Memo/Food Text) -->
+        <div class="form-group">
+          <label for="editContent" id="labelContent">상세 내용</label>
+          <textarea id="editContent" class="form-control" rows="4" required></textarea>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">취소</button>
+          <button type="submit" class="btn btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </body>
 </html>
 """
+
+from datetime import date, timedelta
+import json
+
+def calculate_streak(workout_dates):
+    parsed_dates = set()
+    for d_str in workout_dates:
+        try:
+            parsed_dates.add(date.fromisoformat(d_str))
+        except ValueError:
+            continue
+            
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    
+    if today in parsed_dates:
+        start_date = today
+    elif yesterday in parsed_dates:
+        start_date = yesterday
+    else:
+        return 0
+        
+    streak = 0
+    current_check = start_date
+    while current_check in parsed_dates:
+        streak += 1
+        current_check -= timedelta(days=1)
+        
+    return streak
+
+
+@app.route("/edit/<string:category>/<int:record_id>", methods=["POST"])
+def edit_record(category, record_id):
+    if category not in ["workouts", "meals"]:
+        return "Invalid category", 400
+        
+    conn = get_conn()
+    try:
+        if category == "workouts":
+            record_date = request.form.get("record_date")
+            exercise_name = request.form.get("exercise_name")
+            memo = request.form.get("memo")
+            conn.execute(
+                "UPDATE workouts SET record_date = ?, exercise_name = ?, memo = ? WHERE id = ?",
+                (record_date, exercise_name, memo, record_id)
+            )
+        elif category == "meals":
+            record_date = request.form.get("record_date")
+            meal_type = request.form.get("meal_type")
+            food_text = request.form.get("food_text")
+            conn.execute(
+                "UPDATE meals SET record_date = ?, meal_type = ?, food_text = ? WHERE id = ?",
+                (record_date, meal_type, food_text, record_id)
+            )
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return f"Error: {e}", 500
+    finally:
+        conn.close()
+    return "OK", 200
 
 
 @app.route("/delete/<string:category>/<int:record_id>", methods=["POST"])
@@ -758,6 +1378,54 @@ def index():
     meals = conn.execute("SELECT * FROM meals ORDER BY record_date DESC, id DESC LIMIT 20").fetchall()
     vitals = conn.execute("SELECT * FROM vitals ORDER BY record_date DESC, id DESC LIMIT 20").fetchall()
     
+    # 캘린더용 운동 날짜 리스트 추출
+    workout_dates = [row['record_date'] for row in conn.execute("SELECT DISTINCT record_date FROM workouts").fetchall()]
+    workout_dates_json = json.dumps(workout_dates)
+    
+    # 연속 운동 스트리크(일수) 계산
+    streak_count = calculate_streak(workout_dates)
+    
+    # 체중 데이터 차트용 추출
+    weight_data = conn.execute(
+        "SELECT record_date, body_weight_kg FROM vitals WHERE body_weight_kg IS NOT NULL ORDER BY record_date ASC, id ASC"
+    ).fetchall()
+    weight_labels = [row['record_date'] for row in weight_data]
+    weight_values = [row['body_weight_kg'] for row in weight_data]
+    weight_labels_json = json.dumps(weight_labels)
+    weight_values_json = json.dumps(weight_values)
+    
+    # 풀업 챌린지 데이터 추출
+    pullup_query = """
+    SELECT record_date, reps, sets, memo 
+    FROM workouts 
+    WHERE exercise_name LIKE '%풀업%' 
+       OR exercise_name LIKE '%턱걸이%' 
+       OR memo LIKE '%풀업%' 
+       OR memo LIKE '%턱걸이%'
+    """
+    pullup_rows = conn.execute(pullup_query).fetchall()
+    pullup_by_date = {}
+    import re
+    for row in pullup_rows:
+        d = row['record_date']
+        r = row['reps'] or 0
+        
+        # 만약 reps가 0(None)이면 memo에서 파싱 시도 (하위 호환성)
+        if r == 0 and row['memo']:
+            m = re.search(r"(\d+)\s*(?:회|개|reps|rep)", row['memo'], re.IGNORECASE)
+            if m:
+                r = int(m.group(1))
+            else:
+                fallback_m = re.search(r"(?:풀업|턱걸이)\s*(\d+)", row['memo'])
+                if fallback_m:
+                    r = int(fallback_m.group(1))
+                    
+        if r > 0:
+            pullup_by_date[d] = max(pullup_by_date.get(d, 0), r)
+            
+    pullup_pr = max(pullup_by_date.values()) if pullup_by_date else 0
+    pullup_history = sorted([{"date": k, "reps": v} for k, v in pullup_by_date.items()], key=lambda x: x['date'], reverse=True)[:5]
+    
     conn.close()
     
     return render_template_string(
@@ -770,7 +1438,14 @@ def index():
         workouts=workouts,
         meals=meals,
         vitals=vitals,
+        workout_dates_json=workout_dates_json,
+        streak_count=streak_count,
+        weight_labels_json=weight_labels_json,
+        weight_values_json=weight_values_json,
+        pullup_pr=pullup_pr,
+        pullup_history=pullup_history,
     )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+    
