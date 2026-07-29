@@ -1,0 +1,27 @@
+# PT 대시보드 리버스 프록시 (DuckDNS + Nginx + Let's Encrypt)
+#
+# 사용법:
+#   1) 아래 SUBDOMAIN 을 실제 값으로 바꿔 /etc/nginx/sites-available/pt-dashboard 로 저장
+#   2) sudo ln -sf /etc/nginx/sites-available/pt-dashboard /etc/nginx/sites-enabled/pt-dashboard
+#   3) sudo htpasswd -c /etc/nginx/.htpasswd hyungjun   # 로그인 ID/PW 생성
+#   4) sudo nginx -t && sudo systemctl reload nginx
+#   5) sudo certbot --nginx -d SUBDOMAIN.duckdns.org    # 443/HTTPS 자동 추가 + 리다이렉트
+#
+# certbot 실행 후 이 파일에는 443 server 블록과 http->https 리다이렉트가 자동 추가된다.
+
+server {
+    listen 80;
+    server_name SUBDOMAIN.duckdns.org;
+
+    # 개인 건강 기록 → 기본 인증 필수 (certbot 이 HTTPS 를 붙여도 인증은 유지됨)
+    auth_basic "PT Dashboard";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
