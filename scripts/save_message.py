@@ -75,13 +75,19 @@ def save_workout_if_present(text):
             sets_match = re.search(r"(\d+)\s*(?:세트|set)", line, re.IGNORECASE)
             if sets_match:
                 sets = int(sets_match.group(1))
-                
+
+            # 무게(kg) 파싱
+            weight_kg = None
+            weight_match = re.search(r"(\d+(?:\.\d+)?)\s*kg", line, re.IGNORECASE)
+            if weight_match:
+                weight_kg = float(weight_match.group(1))
+
             cur.execute(
                 """
-                INSERT INTO workouts (record_date, exercise_name, memo, reps, sets)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO workouts (record_date, exercise_name, weight_kg, reps, sets, memo)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (date.today().isoformat(), line[:80], line, reps, sets),
+                (date.today().isoformat(), line[:80], weight_kg, reps, sets, line),
             )
             count += 1
     conn.commit()
