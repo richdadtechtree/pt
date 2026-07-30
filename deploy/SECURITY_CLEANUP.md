@@ -10,11 +10,18 @@
 - 텔레그램 봇 토큰 2개 (신문봇 `default`, PT봇 `pt`)
 - 게이트웨이 인증 토큰 (`gateway.auth.token`)
 - Brave 검색 API 키
-- Google/Gemini API 키
+
+> ✅ 커밋 전체 스캔 결과 **Google/Gemini 및 OpenAI API 키 원문은 깃에 올라간 적 없음**
+> (오픈클로 secret store에 별도 저장 — `credentials/` 는 추적 안 됨).
+> 따라서 위 3종만 재발급하면 되고, **OpenAI 키는 재발급 불필요**.
+> Gemini 키는 유출은 아니지만 어차피 안 쓸 거라 삭제 권장(A-4).
 
 ---
 
-## PART A. 비밀정보 전부 재발급 (가장 중요)
+## PART A. 유출된 비밀정보 재발급 (가장 중요)
+
+재발급 대상은 **텔레그램 봇 2개 · 게이트웨이 토큰 · Brave 키** 3종뿐.
+(OpenAI 키는 유출 안 됐으니 그대로 사용, Gemini 키는 삭제만.)
 
 ### A-1. 텔레그램 봇 토큰 2개
 1. 텔레그램 **@BotFather** → `/mybots` → 신문봇 선택 → **API Token → Revoke current token** → 새 토큰 복사
@@ -34,11 +41,13 @@ openssl rand -hex 24    # 새 토큰 생성
 Brave Search API 대시보드에서 키 **재발급** → `~/.openclaw/openclaw.json` 의
 `plugins.entries.brave.config.webSearch.apiKey` 교체.
 
-### A-4. Google/Gemini API 키
-https://aistudio.google.com/apikey → 기존 키 **삭제(재발급)** →
-- `~/.openclaw/openclaw.json` 의 Google auth 키
-- `~/pt_system/.env` 의 `GEMINI_API_KEY`
-둘 다 교체.
+### A-4. Google/Gemini API 키 (유출 아님 — 삭제만)
+Gemini는 더 이상 쓰지 않으므로 유출 여부와 무관하게 정리한다.
+https://aistudio.google.com/apikey → 기존 키 **삭제(Delete)** →
+`~/pt_system/.env` 의 `GEMINI_*` 줄 제거(이미 OpenAI로 전환됨).
+
+> OpenAI 키는 재발급 대상이 아니다. 전 모델을 GPT로 전환하는 방법은
+> `deploy/SWITCH_TO_GPT.md` 참고.
 
 ### A-5. 반영
 ```bash

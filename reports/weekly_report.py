@@ -2,9 +2,8 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path("/home/ubuntu/pt_system")))
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from google import genai
-from scripts.config import GEMINI_MODEL
 from scripts.db import get_conn
+from scripts.llm import generate_text
 from reports.fetch_data import fetch_range
 def build_prompt(data):
     return f"""
@@ -36,12 +35,7 @@ def save_report(start, end, text):
     conn.close()
 def main():
     data = fetch_range(days=7)
-    client = genai.Client()
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=build_prompt(data),
-    )
-    report = response.text.strip()
+    report = generate_text(build_prompt(data)).strip()
     save_report(data["start"], data["end"], report)
     print(report)
 if __name__ == "__main__":

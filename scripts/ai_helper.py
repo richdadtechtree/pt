@@ -1,9 +1,5 @@
-import os
-from google import genai
-from scripts.config import GEMINI_API_KEY, GEMINI_MODEL, BASE_DIR
-
-# 새로운 클라이언트 초기화
-client = genai.Client(api_key=GEMINI_API_KEY)
+from scripts.config import BASE_DIR
+from scripts.llm import generate_text, generate_vision
 
 def load_markdown_file(filename):
     file_path = BASE_DIR / filename
@@ -52,17 +48,11 @@ def generate_response(prompt):
 
 사용자의 입력: {prompt}
 """
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=full_prompt,
-        )
-        return response.text
+        return generate_text(full_prompt)
     except Exception as e:
         return f"AI 답변 생성 중 오류가 발생했습니다: {e}"
 
 def generate_image_response(image_bytes, mime_type="image/jpeg"):
-    from google.genai import types
-    
     # USER.md와 SOUL.md 파일 읽기 시도
     user_info = load_markdown_file("USER.md")
     soul_info = load_markdown_file("SOUL.md")
@@ -114,16 +104,6 @@ def generate_image_response(image_bytes, mime_type="image/jpeg"):
 """
 
     try:
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[
-                types.Part.from_bytes(
-                    data=image_bytes,
-                    mime_type=mime_type
-                ),
-                prompt
-            ]
-        )
-        return response.text
+        return generate_vision(image_bytes, prompt, mime_type=mime_type)
     except Exception as e:
         return f"AI 이미지 분석 중 오류가 발생했습니다: {e}"

@@ -108,7 +108,7 @@ def handle_photo(photo, caption):
 
     send_message("사진을 분석하고 있습니다. 잠시만 기다려 주세요...")
     
-    # Gemini를 통해 이미지 내용 분석
+    # GPT 비전을 통해 이미지 내용 분석
     ai_raw_response = generate_image_response(image_bytes, mime_type="image/jpeg")
     
     # [기록 데이터] 및 [코칭 피드백] 파싱
