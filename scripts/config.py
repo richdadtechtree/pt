@@ -8,7 +8,14 @@ load_dotenv(BASE_DIR / ".env")
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", str(BASE_DIR / "pt_data.db"))
 
-# OpenAI(GPT) — 리포트/AI 응답 생성에 사용
+# LLM 공급자 선택: "gemini" 또는 "openai" (.env 한 줄로 전환)
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
+
+# Gemini (기본)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+
+# OpenAI(GPT)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
