@@ -15,12 +15,12 @@ def find_sleep(text):
     match = re.search(r"수면\s*([0-9]+(?:\.[0-9]+)?)\s*시간", text) 
     return float(match.group(1)) if match else None
 
-def save_raw_message(text):
+def save_raw_message(text, source="telegram"):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO raw_messages (source, message_text, processed) VALUES (?, ?, ?)",
-        ("telegram", text, 1),
+        (source, text, 1),
     )
     conn.commit()
     conn.close()
@@ -117,14 +117,20 @@ def save_meal_if_present(text):
     return count
 
 def main():
-    text = " ".join(sys.argv[1:]).strip()
+    # 선택: `--source <telegram|slack>` 를 앞에 줄 수 있음(기본 telegram, 하위호환).
+    args = sys.argv[1:]
+    source = "telegram"
+    if args and args[0] == "--source" and len(args) >= 2:
+        source = args[1]
+        args = args[2:]
+    text = " ".join(args).strip()
     if not text:
         text = sys.stdin.read().strip()
     if not text:
-        print("입력된 메시지가 없습니다.") 
+        print("입력된 메시지가 없습니다.")
         return
 
-    save_raw_message(text)
+    save_raw_message(text, source=source)
     workout_count = save_workout_if_present(text)
     meal_count = save_meal_if_present(text)
     vitals_saved = save_vitals_if_present(text)

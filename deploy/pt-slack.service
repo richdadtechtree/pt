@@ -1,0 +1,21 @@
+[Unit]
+# AI PT Slack 봇 (Socket Mode). 텔레그램 봇(pt-telegram.service) 대체.
+# 설치:
+#   sudo cp /home/ubuntu/pt_system/deploy/pt-slack.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now pt-slack
+# 로그:  journalctl -u pt-slack -f
+Description=AI PT Slack bot (Socket Mode)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/pt_system
+ExecStart=/home/ubuntu/pt_system/venv/bin/python /home/ubuntu/pt_system/scripts/slack_bot.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

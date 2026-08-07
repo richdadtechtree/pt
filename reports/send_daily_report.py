@@ -3,7 +3,7 @@ import subprocess
 import sys
 sys.path.append(str(Path("/home/ubuntu/pt_system")))
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from scripts.send_telegram import send_message
+from scripts.notify import send_message
 from scripts.config import BASE_DIR
 result = subprocess.run(
     [sys.executable, str(BASE_DIR / "reports/daily_report.py")],
