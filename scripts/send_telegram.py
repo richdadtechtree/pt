@@ -6,12 +6,18 @@ sys.path.append(str(Path("/home/ubuntu/pt_system")))
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import requests
-from scripts.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from scripts.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_ENABLED
 
 def send_message(text):
+    # 텔레그램 발송이 꺼져 있으면 실제 전송 없이 조용히 건너뜁니다.
+    # (다시 켜려면 .env 에 TELEGRAM_ENABLED=true 설정)
+    if not TELEGRAM_ENABLED:
+        print("[텔레그램 발송 비활성화됨] 메시지를 전송하지 않았습니다.")
+        return None
+
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         raise RuntimeError("Telegram 설정이 비어 있습니다.")
-    
+
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
